@@ -27,6 +27,11 @@ Notes to use the codes:
 
   If you do not have a MatLab license and thus need a copy of compiled version, please contact me directly.
 
+Please be noted:
+  1. The function fminsearchbnd belongs to John D'Errico (https://www.mathworks.com/matlabcentral/fileexchange/8277-fminsearchbnd-fminsearchcon).
+  2. The function MFquestdlg belongs to Saeid (University of Antwerp) (https://www.mathworks.com/matlabcentral/fileexchange/31044-specifying-questdlg-position).
+  3. The function uipickfiles belongs to Douglas Schwartz (University of Rochester) (https://www.mathworks.com/matlabcentral/fileexchange/10867-uipickfiles-uigetfile-on-steroids).
+  We thank these geniuses to generte so handy utilities that have greatly accelerated our works. All rights of these functions are reserved for the original authors.
 
 Qinghai Tian (tian_qhcn@icloud.com)
 
