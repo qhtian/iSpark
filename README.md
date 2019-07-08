@@ -3,12 +3,14 @@ iSpark algorithm
 The identification of spatiotemporally restricted Ca2+ signals, Ca2+ sparks, was instrumental for our understanding of cardiac Ca2+ homeostasis. High-speed 2D confocal imaging enables acquisition of such Ca2+ sparks with high-content information but their full appreciation is constrained by the lack of unbiased and easy-to-use analysis tools. We developed a software toolset for unbiased and automatic Ca2+ spark analysis for huge data sets of subcellular Ca2+ signals. iSpark was developed to be scanner and detector independent. In myocytes from hearts subjected to various degrees of hypertrophy we acquired more than 5.000.000 Ca2+ sparks from 14 mice. The iSpark-enabled analysis of this large Ca2+ spark data set showed that the highly organized distribution of Ca2+ sparks present in healthy cells disarrayed concomitant with the development of aberrant transverse tubules and disease severity. Thus, iSpark represents a versatile and universal tool for analyzing local Ca2+ signaling in healthy as well as diseased, aberrant local Ca2+ signal transduction. The results from the unbiased analysis of large data sets provide a deeper insight into possible mechanisms contributing to the onset and progression of cardiac diseases such as hypertrophy.
 
 Please refer to the formal paper published in Journal of Molecular and Cellular Cardiology (in press):
-Large scale, unbiased analysis of elementary calcium signaling events in cardiac myocytes
-by Qinghai Tian (1), Laura Schröder (1), Yvonne Schwarz (2), Aline Flockerzi (1), Lars Kaestner (1,4), Andre Zeug (3), Dieter Bruns (2), and Peter Lipp (1)
-1 Center for Molecular Signaling (PZMS), Institute for Molecular Cell Biology, Research Center for Molecular Imaging and Screening; Medical Faculty, Saarland University, Homburg/Saar, Germany; 
-2 Department of Physiology, Medical Faculty, Saarland University, Homburg, Germany; 
-3 Cellular Neurophysiology, Hannover Medical School, Hannover, Germany.
-4 Experimental Physics, Faculty NT, Saarland University, Saarbrücken, Germany
+
+  Large scale, unbiased analysis of elementary calcium signaling events in cardiac myocytes
+  by Qinghai Tian (1), Laura Schröder (1), Yvonne Schwarz (2), Aline Flockerzi (1), Lars Kaestner (1,4), Andre Zeug (3), Dieter Bruns (2), and Peter Lipp (1)
+  
+  1 Center for Molecular Signaling (PZMS), Institute for Molecular Cell Biology, Research Center for  Molecular Imaging and Screening; Medical Faculty, Saarland University, Homburg/Saar, Germany; 
+  2 Department of Physiology, Medical Faculty, Saarland University, Homburg, Germany; 
+  3 Cellular Neurophysiology, Hannover Medical School, Hannover, Germany.
+  4 Experimental Physics, Faculty NT, Saarland University, Saarbrücken, Germany
 
 
 Notes to use the codes:
