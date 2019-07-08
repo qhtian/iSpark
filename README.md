@@ -6,11 +6,12 @@ Please refer to the formal paper published in Journal of Molecular and Cellular 
 
   Large scale, unbiased analysis of elementary calcium signaling events in cardiac myocytes
   by Qinghai Tian (1), Laura Schröder (1), Yvonne Schwarz (2), Aline Flockerzi (1), Lars Kaestner (1,4), Andre Zeug (3), Dieter Bruns (2), and Peter Lipp (1)
-  
   1. Center for Molecular Signaling (PZMS), Institute for Molecular Cell Biology, Research Center for  Molecular Imaging and Screening; Medical Faculty, Saarland University, Homburg/Saar, Germany;
   2. Department of Physiology, Medical Faculty, Saarland University, Homburg, Germany; 
   3. Cellular Neurophysiology, Hannover Medical School, Hannover, Germany.
   4. Experimental Physics, Faculty NT, Saarland University, Saarbrücken, Germany
+
+
 
 Notes to use the codes:
   1. Please install a copy of ImageJ, and locate the pacage "ij.jar" or similar "ij-xxx.jar";
@@ -26,17 +27,24 @@ Notes to use the codes:
   6. In MatLab's preferences, navigate to MATLAB / General / Java Heap Memory, adjust it to a maximal value if possible.
   7. Restart MatLab and you are ready to go.
 
+
+
 How to use:
   1. For users: nagivate the MatLab current folder (the path in the top of the main window) to the folder where iSpark is, and right click on the iSpark function from current foler layout in the left panel, and select "run" from the submenu. You will get the graphic user interface. Similarly, iSparkControl will will give you the spark control window.
   2. For experts: the function iSpark is the GUI function. The main processing function is "SparkAnalsys" function.
 
+
 If you do not have a MatLab license and thus need a copy of compiled version, please contact me directly.
+
+
 
 Please be noted:
   1. The function fminsearchbnd belongs to John D'Errico (https://www.mathworks.com/matlabcentral/fileexchange/8277-fminsearchbnd-fminsearchcon).
   2. The function MFquestdlg belongs to Saeid (University of Antwerp) (https://www.mathworks.com/matlabcentral/fileexchange/31044-specifying-questdlg-position).
   3. The function uipickfiles belongs to Douglas Schwartz (University of Rochester) (https://www.mathworks.com/matlabcentral/fileexchange/10867-uipickfiles-uigetfile-on-steroids).
   We thank these geniuses to generte so handy utilities that have greatly accelerated our works. All rights of these functions are reserved for the original authors.
+
+
 
 Qinghai Tian (tian_qhcn@icloud.com)
 
