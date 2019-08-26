@@ -918,10 +918,12 @@ function [] = RunNow(varargin)
                     end
                     x1=min(x1); x2=max(x2); y1=min(y1); y2=max(y2);
                     
-                    I=I(x1:x2,y1:y2,:);
-                   CellMask=CellMask(x1:x2,y1:y2);
+                    Icrop=I(x1:x2,y1:y2,:);
+                    CellMask=CellMask(x1:x2,y1:y2);
                     clear('bwCrop','ROInum','j');
                     fprintf('        done\n');
+                else
+                    Icrop=I;
                 end
                 
                 
@@ -941,7 +943,7 @@ function [] = RunNow(varargin)
                     if numCellROI>1
                         fprintf('\n    Processing Recording ROI %d:\n',ROIno);
                     end
-                    SparkAll=SparkAnalysis(I,...
+                    SparkAll=SparkAnalysis(Icrop,...
                         'xyt_dim',              xyt_dim,...
                         'Threshold',            SparkParameter.LocalThreshold,...
                         'CameraOffset',         SparkParameter.DetectorOffset,...
@@ -971,7 +973,7 @@ function [] = RunNow(varargin)
                         end
                         z1=1+(recordphaseNo-1)*SparkParameter.RecordPhase;
                         z2=recordphaseNo*SparkParameter.RecordPhase;
-                        SparkAllTemp=SparkAnalysis(I(:,:,z1:z2),...
+                        SparkAllTemp=SparkAnalysis(Icrop(:,:,z1:z2),...
                             'xyt_dim',              xyt_dim,...
                             'Threshold',            SparkParameter.LocalThreshold,...
                             'CameraOffset',         SparkParameter.DetectorOffset,...
@@ -993,6 +995,9 @@ function [] = RunNow(varargin)
                     clear('numRecord','recordphaseNo');
                 end
 
+                clear('Icrop');
+                
+                
                 % Write metainformation to the result file
                 if Info(k,1).TotalNo==1
                     StackFileName=FileName;

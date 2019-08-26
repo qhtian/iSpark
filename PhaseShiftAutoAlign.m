@@ -23,16 +23,16 @@ function varargout=PhaseShiftAutoAlign(I,nthDim,xyshiftFit)
             if size(Image1,1)>size(Image2,1)
                 Image1=Image1(1:(size(Image1,1)-1),:);
             end
-            Image1=diff(Image1,1,2);
-            Image2=diff(Image2,1,2);
+            % Image1=diff(Image1,1,2);
+            % Image2=diff(Image2,1,2);
         elseif nthDim==2
             Image1=Image(:,1:2:end);
             Image2=Image(:,2:2:end);
             if size(Image1,2)>size(Image2,2)
                 Image1=Image1(:,1:(size(Image1,2)-1));
             end
-            Image1=diff(Image1,1,1);
-            Image2=diff(Image2,1,1);
+            % Image1=diff(Image1,1,1);
+            % Image2=diff(Image2,1,1);
         end
         
         % Translation calculation.
