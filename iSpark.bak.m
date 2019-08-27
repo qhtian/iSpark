@@ -277,7 +277,7 @@ function iSpark(xyt_dim)
         'e.g. in the case of permeabilized cell recordings.']));
     
     S.chWatershed = uicontrol('Parent',S.fh,'style','checkbox','unit','normalized','position',...
-        [380/W 405/H 120/W 20/H],'string','Use Watershed','value',0,'FontUnits','Normalized','backgroundcolor',...
+        [380/W 405/H 120/W 20/H],'string','Use Watershed','value',1,'FontUnits','Normalized','backgroundcolor',...
         get(S.fh,'color'),'tooltip','Use watershed algorithm to segment connected events.');
     
     S.chROIApplying = uicontrol('Parent',S.fh,'style','checkbox','unit','normalized','position',...
@@ -290,7 +290,7 @@ function iSpark(xyt_dim)
     S.chImdilationApplying = uicontrol('Parent',S.fh,'style','checkbox','unit','normalized','position',...
         [380/W 365/H 120/W 20/H],'string','Use imdilate in Detect','FontUnits',...
         'Normalized','backgroundcolor',get(S.fh,'color'),'tooltip',...
-        sprintf('Check this on to apply imdilate/imerode on detected spark masks'),'value',1);
+        sprintf('Check this on to apply imdilate/imerode on detected spark masks'),'value',0);
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%       Advanced mode.      %%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -630,7 +630,7 @@ function [] = changeMode(varargin)
         set(S.chROIDrawing,'Value',1);
         set(S.chROIApplying,'value',1);
         set(S.chImdilationApplying,'value',0);
-        set(S.chWatershed,'Value',0);
+        set(S.chWatershed,'Value',1);
     end
 
 end
@@ -644,23 +644,213 @@ function [] = RunNow(varargin)
     clear('varargin')
 
     %% Get all the parameters.
-    SparkParameter=parseAllParameters(S);
+    SparkParameter.xyt_dim = [str2double(get(S.xyt_dim1,'string')),...
+        str2double(get(S.xyt_dim2,'string')),...
+        str2double(get(S.xyt_dim3,'string'))];
     
+    SparkParameter.LocalThreshold=str2num(get(S.LocalThreshold,'string')); %#ok<ST2NM> % NaN for empty
+    if isnan(SparkParameter.LocalThreshold);SparkParameter.LocalThreshold=[];end
+    if numel(SparkParameter.LocalThreshold)>1;SparkParameter.LocalThreshold=SparkParameter.LocalThreshold(1);end
     
-    %% Close user interface.
-    enableAllButtons(S,RunNowButton,'off');
+    SparkParameter.GauAmpLim=str2double(get(S.AmpLim,'string'));
+    
+    SparkParameter.ImageDenoise=(get(S.ImageDenoise,'value'));
+    if SparkParameter.ImageDenoise==3
+        SparkParameter.ImageDenoise=0;
+    end
+    
+    % % Other parameters.
+    DetectionScale=[str2double(get(S.DetectionScaleMin,'string')),NaN,...
+                    str2double(get(S.DetectionScaleMax,'string'))];
+                
+    SparkParameter.DecayTauLim=str2double(get(S.DecayTau,'string'));
+    
+    SparkParameter.DetectionLim=[str2double(get(S.DetectionLim1,'string')),...
+                                 str2double(get(S.DetectionLim2,'string'))];
+                             
+    SparkParameter.FWHMLim=[str2double(get(S.FWHMLim1,'string')),...
+                            str2double(get(S.FWHMLim2,'string'))];
+                        
+    SparkParameter.SparkSiteMinDistance=str2double(get(S.SparkSiteMinDistance,'string'));
+    SparkParameter.DetectorOffset=str2double(get(S.Offset,'string'));
+    
+    SparkParameter.Leading_Tail=[str2double(get(S.Tail1,'string')),...
+                                 str2double(get(S.Tail2,'string'))];
+    
+    SparkParameter.PhaseShiftCorrect=get(S.Phase,'value')-1;
+    SparkParameter.ImRegister=logical(get(S.ImRegister,'value')-1)==1;
+    
+    SparkParameter.CellMasking=get(S.CellMasking,'value');
+    SparkParameter.ROIDrawing=get(S.chROIDrawing,'value')==1;
+    SparkParameter.ROIApplying=get(S.chROIApplying,'value')==1;
+    SparkParameter.ImdilateApplying=get(S.chImdilationApplying,'value')==1;
+    
+    SparkParameter.SaveAll=get(S.chSaveAll,'value')==1;
+    ImageCorpOption=get(S.chIcrop,'value')==1;
+    SparkParameter.UseWatershed=get(S.chWatershed,'Value')==1;
 
+    SparkParameter.RecordPhase=str2double(get(S.RecordPhase,'string'));
+    if isnan(SparkParameter.RecordPhase) || SparkParameter.RecordPhase<1
+        SparkParameter.RecordPhase=inf;
+    end
+    
+    sCMOSOffset=str2num(get(S.sCMOSdynamicOffsetCorrection,'string')); %#ok<ST2NM>
+    sCMOSOffset(2:end)=sCMOSOffset(2:end)/100;
+    %% Close user interface.
+    set(S.pbAbout,'Enable','off');
+    set(S.pbAddFile,'Enable','off');
+    set(S.pbDelFolder,'Enable','off');
+    % set(RunNowButton,'string','Running!');
+    set(S.ls,'Enable','off');
+    set(S.xyt_dim1,'Enable','off');
+    set(S.xyt_dim2,'Enable','off');
+    set(S.xyt_dim3,'Enable','off');
+    set(S.LocalThreshold,'Enable','off');
+    set(S.AmpLim,'Enable','off');
+    set(S.DecayTau,'Enable','off');
+    set(S.DetectionLim1,'Enable','off');
+    set(S.DetectionLim2,'Enable','off');
+    set(S.SparkSiteMinDistance,'Enable','off');
+    set(S.FWHMLim1,'Enable','off');
+    set(S.FWHMLim2,'Enable','off');
+    set(S.sCMOSdynamicOffsetCorrection,'Enable','off');
+    set(S.chROIApplying,'Enable','off');
+    set(S.chImdilationApplying,'Enable','off');
+    set(S.chROIDrawing,'Enable','off');
+    set(S.Tail1,'Enable','off');set(S.Tail2,'Enable','off');
+    set(S.CellMasking,'Enable','off');
+    set(S.chSaveAll,'Enable','off');
+    set(S.chShutdown,'Enable','off');
+    set(S.ImageDenoise,'Enable','off');
+    set(S.DetectionScaleMin,'Enable','off');
+    set(S.DetectionScaleMax,'Enable','off');
+    set(S.Phase,'Enable','off');
+    set(S.ImRegister,'Enable','off');
+    set(S.Save,'ButtonDownFcn',{})
+    set(S.pbMode,'Enable','off');
+    set(S.chIcrop,'Enable','off');
+    set(S.Offset,'Enable','off');
+    set(RunNowButton, 'Enable', 'off');
+    set(RunNowButton,'string','Preparing ...');
+    set(S.chWatershed,'Enable','off');
+    set(S.RecordPhase,'Enable','off');
+    drawnow;
+    
     %% Loop all files to get cell mask.
     fprintf('\n\n    +++++++++++++++++++++++  Spark Analysis Started  ++++++++++++++++++++++\n\n\n');
-    [Info,LastDrawnFileType]=loopAllToGetMasks(S,SparkParameter);
-    TotalSeriesNum=numel(Info);
+    if (exist('Info_LastDrawingStep2.mat','file')==2)
+        LastDrawnFileType=2;
+    elseif (exist('Info_LastDrawingStep1.mat','file')==2)
+        LastDrawnFileType=1;
+    else
+        LastDrawnFileType=0;
+    end
     
-    %% Check the output file.
-    [SparkOutFile,SparkSiteOutFile,SparkOutFileAnswer]=checkOutputFile(S);
+    %  Check whether to load last drawn file.
+    if (LastDrawnFileType>0)
+        loadLastDrawnInfo=questdlg(['A saved drawn ROI file (Step',num2str(LastDrawnFileType),...
+            ') is found. Load it or not?'],'Load Last Drawn?','Yes','No','No');
+        loadLastDrawnInfo=strcmpi(loadLastDrawnInfo,'Yes');
+    else
+        loadLastDrawnInfo=false;
+    end
+    
+    % Check the output file.
+    SparkOutFile=get(S.Save,'string');
+    if strcmpi(SparkOutFile,'Click to change result saving folder...')            
+        SparkOutFileAnswer=questdlg('Output file is not defined. Use the "File-Folder.SparkInfo.txt" as output?',...
+            'Spark Info Output Location','Yes','No','Yes');
+        SparkOutFileAnswer=strcmpi(SparkOutFileAnswer,'yes');
+        if SparkOutFileAnswer
+            set(S.Save,'string','File-Folder.SparkInfo.txt');
+        else
+            return;
+        end
+    elseif strcmpi(SparkOutFile,'File-Folder.SparkInfo.txt')
+        SparkOutFileAnswer=true;
+    else
+        SparkOutFileAnswer=false;
+        [PathName,FileName,Ext]=fileparts(SparkOutFile);
+        SparkSiteOutFile=fullfile(PathName,[FileName,'_SparkSites',Ext]);
+        clear('PathName','FileName','Ext')
+    end
+    drawnow expose;
+
+    % Load last drawn or preread all files.
+    if loadLastDrawnInfo
+        if (LastDrawnFileType==2)
+            Info=load('Info_LastDrawingStep2.mat');
+        elseif (LastDrawnFileType==1)
+            Info=load('Info_LastDrawingStep1.mat');
+        end
+        Info=Info.Info;
+        TotalSeriesNum=numel(Info);
+    else        
+        % Cycle all the folders and files.
+        FolderOrFile = get(S.ls,'string');
+        Info=SearchAllFiles(FolderOrFile);  % Info fields: Path,FileName,SeriesNo,TotalNo,Type.
+        TotalSeriesNum=numel(Info);
+
+        fprintf('    ========================  Prereading all cells  =======================\n');
+        for k=1:TotalSeriesNum
+            fprintf('    Step1, reading %d / %d Series, %d%%, %s\n',k,TotalSeriesNum,round(100*k/TotalSeriesNum),Info(k,1).FileName);
+            FileName=fullfile(Info(k,1).Path,[Info(k,1).FileName,Info(k,1).Type]);
+            [I,I_Info]=ReadStackWithLoci(FileName,Info(k,1).SeriesNo,[1,100]);
+            if SparkParameter.PhaseShiftCorrect>0
+                I=PhaseShiftAutoAlign(I,SparkParameter.PhaseShiftCorrect);
+            end
+            
+            if any(strcmpi(Info(k,1).Type,{'.tif';'.tiff'}))
+                xyt_dim=SparkParameter.xyt_dim;
+            else
+                xyt_dim=I_Info(1:2,2);
+                if xyt_dim(1)<=0; xyt_dim(1)=SparkParameter.xyt_dim(1);end
+                if xyt_dim(2)<=0; xyt_dim(2)=SparkParameter.xyt_dim(2);end
+            end
+            I_Median=mean(I,3);
+            % if SparkParameter.CellMasking==4
+            %     CurrBW=true(size(I_Median));
+            % else
+            [CurrBW,~]=CellMasking(I_Median,SparkParameter.CellMasking,xyt_dim);
+            % end
+            Info(k,1).PreMasking=CurrBW;
+            if max(I_Median(:))<=255
+                Info(k,1).PreMaskingRaw=uint8(I_Median);
+            else
+                Info(k,1).PreMaskingRaw=uint16(I_Median);
+            end
+            clear('I_Median','CurrBW','FileName','I','I_Info')
+        end
+        save('Info_LastDrawingStep1.mat','Info');
+    end
+    clear('loadLastDrawnInfo')
     
     %% Manual Checking of cell masks.
-    Info=manualCheckMasks(SparkParameter,LastDrawnFileType,Info);
-    clear('LastDrawnFileType');
+    if SparkParameter.ROIDrawing
+        if LastDrawnFileType==2
+            ROIcheck=questdlg('The pre-drawn ROI Info might have been checked last time, do you really want to check again?',...
+                'ROI Checking','Yes','No','Yes');
+            ROIcheck=strcmpi(ROIcheck,'yes');
+        else
+            ROIcheck=true;
+        end
+        
+        if ROIcheck
+            fprintf('    ========================  Preparing cell masks  =======================\n');
+            for k=1:TotalSeriesNum
+                CellMask=FreehandROI(Info(k,1).PreMaskingRaw,Info(k,1).PreMasking,...
+                    [num2str(k),' / ',num2str(TotalSeriesNum),' | ',Info(k,1).FileName]);
+                CellMask=removePixelROIs(CellMask);
+                Info(k,1).PreMasking=CellMask;
+                fprintf('    Step2, manual checking %d / %d Series, %d%%, %s\n',k,...
+                    TotalSeriesNum,round(100*k/TotalSeriesNum),Info(k,1).FileName);
+                clear('CurrBW','CellMask');
+            end
+            save('Info_LastDrawingStep2.mat','Info');
+            fprintf('    ====================  Preparing cell masks finished ===================\n\n\n\n\n\n');
+        end
+    end
+    clear('LastDrawnFileType','ROIcheck')
 
     %% Loop all files heres.    % Info fields: Path,FileName,SeriesNo,TotalNo,Type.
     ElapsedTime=tic;
@@ -679,25 +869,176 @@ function [] = RunNow(varargin)
         set(S.txCurrFile,'string',sprintf(['Current Series: No. ',num2str(k),' / ',...
             num2str(TotalSeriesNum),', ',num2str(round(k/TotalSeriesNum*100)),'%%']));
         drawnow expose;
-
+        
+        FileName=fullfile(Info(k,1).Path,[Info(k,1).FileName,Info(k,1).Type]);
+        
         % %%%%%%%%%%%%%%%%%%%% Real Analysis Start Here %%%%%%%%%%%%%%%%%%%%%%%%
-        try
-            if SparkOutFileAnswer
-                SparkOutFile=fullfile(Info(k,1).Path,'SparkInfo.txt');
-                SparkSiteOutFile=fullfile(Info(k,1).Path,'SparkSitesInfo.txt');
+        try                    % Use try-catch control to escape from error.
+            % Read image series.
+            fprintf('    Reading file from Hard Disk ...    ');
+            [I,I_Info]=ReadStackWithLoci(FileName,Info(k,1).SeriesNo);
+            if I_Info(5,1)>1; I=I(:,:,1:I_Info(5,1):end); end % Read the first channel to analyze.
+            
+            Isiz=size(I);
+            
+            if Isiz(3)<40    % Check whether the image series is just too small.
+                fprintf('\n    This file does not look like a spark movie, skip it now.\n\n');
+                RemainedTime=toc(ElapsedTime)/k*(TotalSeriesNum-k);
+                set(S.txETA,'string',sprintf(['Remaining Time:\n',num2str(floor(RemainedTime/3600)),...
+                    ' h ',num2str(ceil(mod(RemainedTime,3600)/60)),' min']));
+                drawnow expose;
+                clear('I','FileName','SparkLogFileName','SparkSiteLogName','I_Info',...
+                    'StackFileName','RemainedTime');
+                continue;
             end
-            processSingleFile(Info(k),SparkParameter,SparkOutFile,SparkSiteOutFile);
+            fprintf('    done\n');
             
+            % Correct sCMOS dynamic
+            if ~(isnan(sCMOSOffset(1)) || (round(sCMOSOffset(1))>2) || (round(sCMOSOffset(1))<1))
+                fprintf('    sCMOS Dynamic Offset correction ...');
+                I=sCMOSdynamicOffsetCorrection(I,sCMOSOffset);
+                fprintf('    done\n');
+            end
             
+            % Crop unnecessary regions to accelerate the processing.
+            CellROI=bwlabeln(Info(k,1).PreMasking);
+            numCellROI=max(CellROI(:));
+            for ROIno=1:numCellROI
+                CellMask=CellROI==ROIno;
+                if ImageCorpOption
+                    fprintf('    Cropping image stack ...       ');
+                    bwCrop=regionprops(CellMask,'BoundingBox');
+                    ROInum=numel(bwCrop);
+                    x1=zeros(ROInum,1); x2=zeros(ROInum,1); y1=zeros(ROInum,1); y2=zeros(ROInum,1);
+                    for j=1:numel(bwCrop)
+                        x1(j)=floor(bwCrop(j).BoundingBox(2));    if x1(j)<1; x1(j)=1; end
+                        x2(j)=x1(j)+bwCrop(j).BoundingBox(4)+1;   if x2(j)>Isiz(1); x2(j)=Isiz(1); end
+                        y1(j)=floor(bwCrop(j).BoundingBox(1));    if y1(j)<1; y1(j)=1; end
+                        y2(j)=y1(j)+bwCrop(j).BoundingBox(3)+1;   if y2(j)>Isiz(2); y2(j)=Isiz(2); end
+                    end
+                    x1=min(x1); x2=max(x2); y1=min(y1); y2=max(y2);
+                    
+                    Icrop=I(x1:x2,y1:y2,:);
+                    CellMask=CellMask(x1:x2,y1:y2);
+                    clear('bwCrop','ROInum','j');
+                    fprintf('        done\n');
+                else
+                    Icrop=I;
+                end
+                
+                
+                if any(strcmpi(Info(k,1).Type,{'.tif';'.tiff'}))
+                    xyt_dim=SparkParameter.xyt_dim;
+                else
+                    xyt_dim=I_Info(1:3,2); xyt_dim(3)=xyt_dim(3)*1000;
+                    if xyt_dim(1)<=0; xyt_dim(1)=SparkParameter.xyt_dim(1);end
+                    if xyt_dim(2)<=0; xyt_dim(2)=SparkParameter.xyt_dim(2);end
+                    if xyt_dim(3)<=0; xyt_dim(3)=SparkParameter.xyt_dim(3);end
+                end
+                
+                
+                % Real analysis of the image series.
+                DetectionScale(2)=max(1,round((DetectionScale(3)-DetectionScale(1))/5/xyt_dim(3)))*xyt_dim(3);
+                if isinf(SparkParameter.RecordPhase) || (SparkParameter.RecordPhase>=Isiz(3))
+                    if numCellROI>1
+                        fprintf('\n    Processing Recording ROI %d:\n',ROIno);
+                    end
+                    SparkAll=SparkAnalysis(Icrop,...
+                        'xyt_dim',              xyt_dim,...
+                        'Threshold',            SparkParameter.LocalThreshold,...
+                        'CameraOffset',         SparkParameter.DetectorOffset,...
+                        'GauAmpLim',            SparkParameter.GauAmpLim,...
+                        'TauLim',               SparkParameter.DecayTauLim,...
+                        'DetectionLimit',       SparkParameter.DetectionLim,...
+                        'FWHMLimit',            SparkParameter.FWHMLim,...
+                        'SparkLim',             SparkParameter.Leading_Tail,...
+                        'Denoising',            SparkParameter.ImageDenoise,...
+                        'DetectionScale',       DetectionScale,...
+                        'MinSparkSiteDistance', SparkParameter.SparkSiteMinDistance,...
+                        'CellMasking',          CellMask,...
+                        'PhaseShiftCorrect',    SparkParameter.PhaseShiftCorrect,...
+                        'ImRegister',           SparkParameter.ImRegister,...
+                        'ApplyGlobalCellmask',  SparkParameter.ROIApplying,...
+                        'ApplyImdilation',      SparkParameter.ImdilateApplying,...
+                        'UseWatershedSegment',  SparkParameter.UseWatershed);
+                else
+                    numRecord=floor(Isiz(3)/SparkParameter.RecordPhase);
+                    % numRecord=2; % for testing
+                    SparkAll=[];
+                    for recordphaseNo=1:numRecord
+                        if numCellROI==1
+                            fprintf('\n    Processing Recording Phase No.: %d / %d\n',recordphaseNo,numRecord);
+                        else
+                            fprintf('\n    Processing ROI %d, Recording Phase No.: %d / %d\n',ROIno,recordphaseNo,numRecord);
+                        end
+                        z1=1+(recordphaseNo-1)*SparkParameter.RecordPhase;
+                        z2=recordphaseNo*SparkParameter.RecordPhase;
+                        SparkAllTemp=SparkAnalysis(Icrop(:,:,z1:z2),...
+                            'xyt_dim',              xyt_dim,...
+                            'Threshold',            SparkParameter.LocalThreshold,...
+                            'CameraOffset',         SparkParameter.DetectorOffset,...
+                            'GauAmpLim',            SparkParameter.GauAmpLim,...
+                            'TauLim',               SparkParameter.DecayTauLim,...
+                            'DetectionLimit',       SparkParameter.DetectionLim,...
+                            'FWHMLimit',            SparkParameter.FWHMLim,...
+                            'SparkLim',             SparkParameter.Leading_Tail,...
+                            'Denoising',            SparkParameter.ImageDenoise,...
+                            'DetectionScale',       DetectionScale,...
+                            'MinSparkSiteDistance', SparkParameter.SparkSiteMinDistance,...
+                            'CellMasking',          CellMask,...
+                            'PhaseShiftCorrect',    SparkParameter.PhaseShiftCorrect,...
+                            'ImRegister',           SparkParameter.ImRegister,...
+                            'ApplyGlobalCellmask',  SparkParameter.ROIApplying);
+                        SparkAll=cat(1,SparkAll,SparkAllTemp);
+                        clear('SparkAllTemp','z1','z2')
+                    end
+                    clear('numRecord','recordphaseNo');
+                end
+
+                clear('Icrop');
+                
+                
+                % Write metainformation to the result file
+                if Info(k,1).TotalNo==1
+                    StackFileName=FileName;
+                elseif Info(k,1).TotalNo>1
+                    StackFileName=[FileName,'_Series_',num2str(Info(k,1).SeriesNo)];
+                end
+                
+                if numCellROI>1
+                    StackFileName=[StackFileName,'_ROI',num2str(ROIno)]; %#ok<AGROW>
+                end
+                
+                if SparkOutFileAnswer
+                    SparkOutFile=fullfile(Info(k,1).Path,'SparkInfo.txt');
+                    SparkSiteOutFile=fullfile(Info(k,1).Path,'SparkSitesInfo.txt');
+                end
+                
+                fprintf('    Saving Spark/Site results to Hard Disk...      ');
+                saveTxtResults(SparkAll,StackFileName,SparkOutFile,SparkSiteOutFile);
+                fprintf('  done\n');
+                
+                % Save all intermediate variables.
+                if SparkParameter.SaveAll
+                    fprintf('    Saving all intermediate results to Hard Disk...');
+                    % SparkAll.FileName=StackFileName;
+                    [~,SparkAll(1).FileName,~]=fileparts([StackFileName,'.mat']);
+                    save([StackFileName,'.mat'],'SparkAll','-v7.3');
+                    fprintf('  done\n')
+                end
+            end
+            % Progress bar.
+            RemainedTime=toc(ElapsedTime)/k*(TotalSeriesNum-k);
+            set(S.txETA,'string',sprintf(['Remaining Time:\n',num2str(floor(RemainedTime/3600)),...
+                ' h ',num2str(ceil(mod(RemainedTime,3600)/60)),' min']));
+            drawnow expose;
+            
+            % Clear the resulted variables.
+            clear('SparkAll','I','FileName','SparkLogFileName','SparkSiteLogName','I_Info',...
+                'xyt_dim','StackFileName','RemainedTime');
         catch err
             disp(err.message);
         end
-        % Progress bar.
-        RemainedTime=toc(ElapsedTime)/k*(TotalSeriesNum-k);
-        set(S.txETA,'string',sprintf(['Remaining Time:\n',num2str(floor(RemainedTime/3600)),...
-            ' h ',num2str(ceil(mod(RemainedTime,3600)/60)),' min']));
-        drawnow expose;
-        
         % %%%%%%%%%%%%%%%%%%%% Analysis End Here     %%%%%%%%%%%%%%%%%%%%%%%%
         fprintf('\n\n\n\n\n\n');
     end
@@ -714,169 +1055,46 @@ function [] = RunNow(varargin)
         end
     end
     %% Set gui available again.
-    enableAllButtons(S,RunNowButton,'on');
-    
+    set(S.pbAbout,'Enable','on');
+    set(S.pbAddFile,'Enable','on');
+    set(S.pbDelFolder,'Enable','on');
+    set(RunNowButton, 'Enable', 'on');
+    set(RunNowButton,'string','Start Processing!');
+    set(S.ls,'Enable','on');
+    set(S.xyt_dim1,'Enable','on');
+    set(S.xyt_dim2,'Enable','on');
+    set(S.xyt_dim3,'Enable','on');
+    set(S.ImRegister,'Enable','on');
+    set(S.LocalThreshold,'Enable','on');
+    set(S.AmpLim,'Enable','on');
+    set(S.DecayTau,'Enable','on');
+    set(S.DetectionLim1,'Enable','on');
+    set(S.DetectionLim2,'Enable','on');
+    set(S.SparkSiteMinDistance,'Enable','on');
+    set(S.FWHMLim1,'Enable','on');
+    set(S.FWHMLim2,'Enable','on');
+    set(S.sCMOSdynamicOffsetCorrection,'Enable','on');
+    set(S.chROIApplying,'Enable','on');
+    set(S.chImdilationApplying,'Enable','on');
+    set(S.chROIDrawing,'Enable','on');
+    set(S.Tail1,'Enable','on');set(S.Tail2,'Enable','on');
+    set(S.CellMasking,'Enable','on');
+    set(S.chSaveAll,'Enable','on');
+    set(S.ImageDenoise,'Enable','on');
+    set(S.DetectionScaleMin,'Enable','on');
+    set(S.DetectionScaleMax,'Enable','on');
+    set(S.chShutdown,'Enable','on');
+    set(S.Offset,'Enable','on');
+    set(S.txCurrFile,'string','');
+    set(S.txETA,'string','');
+    set(S.Save,'ButtonDownFcn',{@CreateSaveFile,S})
+    set(S.Phase,'Enable','on');
+    set(S.pbMode,'Enable','on');
+    set(S.chIcrop,'Enable','on');
+    set(S.chWatershed,'Enable','on');
+    set(S.RecordPhase,'Enable','on');
+    drawnow expose;
 end
-
-
-function processSingleFile(Info,SparkParameter,SparkOutFile,SparkSiteOutFile)
-    FileName=fullfile(Info.Path,[Info.FileName,Info.Type]);
-    % Read image series.
-    fprintf('    Reading file from Hard Disk ...    ');
-    [I,I_Info]=ReadStackWithLoci(FileName,Info.SeriesNo);
-    if I_Info(5,1)>1; I=I(:,:,1:I_Info(5,1):end); end % Read the first channel to analyze.
-    
-    Isiz=size(I);
-    
-    if Isiz(3)<40    % Check whether the image series is just too small.
-        fprintf('\n    This file does not look like a spark movie, skip it now.\n\n');
-        return;
-    end
-    fprintf('    done\n');
-    
-    % Correct sCMOS dynamic
-    sCMOSOffset=SparkParameter.sCMOSOffset;
-    if ~(isnan(sCMOSOffset(1)) || (round(sCMOSOffset(1))>2) || (round(sCMOSOffset(1))<1))
-        fprintf('    sCMOS Dynamic Offset correction ...');
-        I=sCMOSdynamicOffsetCorrection(I,sCMOSOffset);
-        fprintf('    done\n');
-    end
-    
-    if any(strcmpi(Info.Type,{'.tif';'.tiff'}))
-        xyt_dim=SparkParameter.xyt_dim;
-    else
-        xyt_dim=I_Info(1:3,2); xyt_dim(3)=xyt_dim(3)*1000;
-        if xyt_dim(1)<=0; xyt_dim(1)=SparkParameter.xyt_dim(1);end
-        if xyt_dim(2)<=0; xyt_dim(2)=SparkParameter.xyt_dim(2);end
-        if xyt_dim(3)<=0; xyt_dim(3)=SparkParameter.xyt_dim(3);end
-    end
-    
-    % Real analysis of the image series.
-    DetectionScale=SparkParameter.DetectionScale;
-    DetectionScale(2)=max(1,round((DetectionScale(3)-DetectionScale(1))/5/xyt_dim(3)))*xyt_dim(3);
-    CellROI=bwlabeln(Info.PreMasking);
-    numCellROI=max(CellROI(:));
-    
-    ImageCorpOption=SparkParameter.ImageCorpOption;
-    for ROIno=1:numCellROI
-        CellMask=CellROI==ROIno;
-        if isinf(SparkParameter.RecordPhase) || (SparkParameter.RecordPhase>=Isiz(3))
-            if numCellROI>1
-                fprintf('\n    Processing Recording ROI %d:\n',ROIno);
-            end
-            % Crop unnecessary regions to accelerate the processing.
-            [Icrop,CellMask]=ImageStackCrop(ImageCorpOption,CellMask,I);
-            
-            SparkAll=SparkAnalysis(Icrop,...
-                'xyt_dim',              xyt_dim,...
-                'Threshold',            SparkParameter.LocalThreshold,...
-                'CameraOffset',         SparkParameter.DetectorOffset,...
-                'GauAmpLim',            SparkParameter.GauAmpLim,...
-                'TauLim',               SparkParameter.DecayTauLim,...
-                'DetectionLimit',       SparkParameter.DetectionLim,...
-                'FWHMLimit',            SparkParameter.FWHMLim,...
-                'SparkLim',             SparkParameter.Leading_Tail,...
-                'Denoising',            SparkParameter.ImageDenoise,...
-                'DetectionScale',       DetectionScale,...
-                'MinSparkSiteDistance', SparkParameter.SparkSiteMinDistance,...
-                'CellMasking',          CellMask,...
-                'PhaseShiftCorrect',    SparkParameter.PhaseShiftCorrect,...
-                'ImRegister',           SparkParameter.ImRegister,...
-                'ApplyGlobalCellmask',  SparkParameter.ROIApplying,...
-                'ApplyImdilation',      SparkParameter.ImdilateApplying,...
-                'UseWatershedSegment',  SparkParameter.UseWatershed);
-        else
-            [Icrop,CellMask]=ImageStackCrop(ImageCorpOption,CellMask,I);
-            % numRecord=2; % for testing
-            numRecord=floor(Isiz(3)/SparkParameter.RecordPhase);
-            SparkAll=[];
-            for recordphaseNo=1:numRecord
-                if numCellROI==1
-                    fprintf('\n    Processing Recording Phase No.: %d / %d\n',recordphaseNo,numRecord);
-                else
-                    fprintf('\n    Processing ROI %d, Recording Phase No.: %d / %d\n',ROIno,recordphaseNo,numRecord);
-                end
-                z1=1+(recordphaseNo-1)*SparkParameter.RecordPhase;
-                z2=recordphaseNo*SparkParameter.RecordPhase;
-                SparkAllTemp=SparkAnalysis(Icrop(:,:,z1:z2),...
-                    'xyt_dim',              xyt_dim,...
-                    'Threshold',            SparkParameter.LocalThreshold,...
-                    'CameraOffset',         SparkParameter.DetectorOffset,...
-                    'GauAmpLim',            SparkParameter.GauAmpLim,...
-                    'TauLim',               SparkParameter.DecayTauLim,...
-                    'DetectionLimit',       SparkParameter.DetectionLim,...
-                    'FWHMLimit',            SparkParameter.FWHMLim,...
-                    'SparkLim',             SparkParameter.Leading_Tail,...
-                    'Denoising',            SparkParameter.ImageDenoise,...
-                    'DetectionScale',       DetectionScale,...
-                    'MinSparkSiteDistance', SparkParameter.SparkSiteMinDistance,...
-                    'CellMasking',          CellMask,...
-                    'PhaseShiftCorrect',    SparkParameter.PhaseShiftCorrect,...
-                    'ImRegister',           SparkParameter.ImRegister,...
-                    'ApplyGlobalCellmask',  SparkParameter.ROIApplying);
-                SparkAll=cat(1,SparkAll,SparkAllTemp);
-                clear('SparkAllTemp','z1','z2')
-            end
-            clear('numRecord','recordphaseNo');
-        end
-        
-        clear('Icrop');
-        
-        
-        % Write metainformation to the result file
-        if Info.TotalNo==1
-            StackFileName=FileName;
-        elseif Info.TotalNo>1
-            StackFileName=[FileName,'_Series_',num2str(Info.SeriesNo)];
-        end
-        
-        if numCellROI>1
-            StackFileName=[StackFileName,'_ROI',num2str(ROIno)]; %#ok<AGROW>
-        end
-        
-        
-        
-        fprintf('    Saving Spark/Site results to Hard Disk...      ');
-        saveTxtResults(SparkAll,StackFileName,SparkOutFile,SparkSiteOutFile);
-        fprintf('  done\n');
-        
-        % Save all intermediate variables.
-        if SparkParameter.SaveAll
-            fprintf('    Saving all intermediate results to Hard Disk...');
-            % SparkAll.FileName=StackFileName;
-            [~,SparkAll(1).FileName,~]=fileparts([StackFileName,'.mat']);
-            save([StackFileName,'.mat'],'SparkAll','-v7.3');
-            fprintf('  done\n')
-        end
-    end
-end
-
-
-
-function [Icrop,CellMask]=ImageStackCrop(ImageCorpOption,CellMask,I)
-    Isiz=size(I);
-    if ImageCorpOption
-        fprintf('    Cropping image stack ...       ');
-        bwCrop=regionprops(CellMask,'BoundingBox');
-        ROInum=numel(bwCrop);
-        x1=zeros(ROInum,1); x2=zeros(ROInum,1); y1=zeros(ROInum,1); y2=zeros(ROInum,1);
-        for j=1:numel(bwCrop)
-            x1(j)=floor(bwCrop(j).BoundingBox(2));    if x1(j)<1; x1(j)=1; end
-            x2(j)=x1(j)+bwCrop(j).BoundingBox(4)+1;   if x2(j)>Isiz(1); x2(j)=Isiz(1); end
-            y1(j)=floor(bwCrop(j).BoundingBox(1));    if y1(j)<1; y1(j)=1; end
-            y2(j)=y1(j)+bwCrop(j).BoundingBox(3)+1;   if y2(j)>Isiz(2); y2(j)=Isiz(2); end
-        end
-        x1=min(x1); x2=max(x2); y1=min(y1); y2=max(y2);
-        
-        Icrop=I(x1:x2,y1:y2,:);
-        CellMask=CellMask(x1:x2,y1:y2);
-        clear('bwCrop','ROInum','j');
-        fprintf('               done\n');
-    else
-        Icrop=I;
-    end
-end
-
 
 function CellMask=removePixelROIs(CellMask)
     CellMask=imclose(CellMask,strel('disk',1));
@@ -987,226 +1205,4 @@ function [Pos,H,W,Screen]=FigSize
     Pos=[round((Screen(3)-FigWidth)*0.5),round((Screen(4)-FigHeight)*0.7),FigWidth,FigHeight];
     Pos(1)=Pos(1)/Screen(3); Pos(3)=Pos(3)/Screen(3);
     Pos(2)=Pos(2)/Screen(4); Pos(4)=Pos(4)/Screen(4);
-end
-
-
-function SparkParameter=parseAllParameters(S)
-    SparkParameter.xyt_dim = [str2double(get(S.xyt_dim1,'string')),...
-        str2double(get(S.xyt_dim2,'string')),...
-        str2double(get(S.xyt_dim3,'string'))];
-    
-    SparkParameter.LocalThreshold=str2num(get(S.LocalThreshold,'string')); %#ok<ST2NM> % NaN for empty
-    if isnan(SparkParameter.LocalThreshold);SparkParameter.LocalThreshold=[];end
-    if numel(SparkParameter.LocalThreshold)>1;SparkParameter.LocalThreshold=SparkParameter.LocalThreshold(1);end
-    
-    SparkParameter.GauAmpLim=str2double(get(S.AmpLim,'string'));
-    
-    SparkParameter.ImageDenoise=(get(S.ImageDenoise,'value'));
-    if SparkParameter.ImageDenoise==3
-        SparkParameter.ImageDenoise=0;
-    end
-    
-    % % Other parameters.
-    SparkParameter.DetectionScale=[str2double(get(S.DetectionScaleMin,'string')),NaN,...
-                                   str2double(get(S.DetectionScaleMax,'string'))];
-                
-    SparkParameter.DecayTauLim=str2double(get(S.DecayTau,'string'));
-    
-    SparkParameter.DetectionLim=[str2double(get(S.DetectionLim1,'string')),...
-                                 str2double(get(S.DetectionLim2,'string'))];
-                             
-    SparkParameter.FWHMLim=[str2double(get(S.FWHMLim1,'string')),...
-                            str2double(get(S.FWHMLim2,'string'))];
-                        
-    SparkParameter.SparkSiteMinDistance=str2double(get(S.SparkSiteMinDistance,'string'));
-    SparkParameter.DetectorOffset=str2double(get(S.Offset,'string'));
-    
-    SparkParameter.Leading_Tail=[str2double(get(S.Tail1,'string')),...
-                                 str2double(get(S.Tail2,'string'))];
-    
-    SparkParameter.PhaseShiftCorrect=get(S.Phase,'value')-1;
-    SparkParameter.ImRegister=logical(get(S.ImRegister,'value')-1)==1;
-    
-    SparkParameter.CellMasking=get(S.CellMasking,'value');
-    SparkParameter.ROIDrawing=get(S.chROIDrawing,'value')==1;
-    SparkParameter.ROIApplying=get(S.chROIApplying,'value')==1;
-    SparkParameter.ImdilateApplying=get(S.chImdilationApplying,'value')==1;
-    
-    SparkParameter.SaveAll=get(S.chSaveAll,'value')==1;
-    SparkParameter.ImageCorpOption=get(S.chIcrop,'value')==1;
-    SparkParameter.UseWatershed=get(S.chWatershed,'Value')==1;
-
-    SparkParameter.RecordPhase=str2double(get(S.RecordPhase,'string'));
-    if isnan(SparkParameter.RecordPhase) || SparkParameter.RecordPhase<1
-        SparkParameter.RecordPhase=inf;
-    end
-    
-    sCMOSOffset=str2num(get(S.sCMOSdynamicOffsetCorrection,'string')); %#ok<ST2NM>
-    sCMOSOffset(2:end)=sCMOSOffset(2:end)/100;
-    SparkParameter.sCMOSOffset=sCMOSOffset;
-end
-
-function [Info,LastDrawnFileType]=loopAllToGetMasks(S,SparkParameter)
-    if (exist('Info_LastDrawingStep2.mat','file')==2)
-        LastDrawnFileType=2;
-    elseif (exist('Info_LastDrawingStep1.mat','file')==2)
-        LastDrawnFileType=1;
-    else
-        LastDrawnFileType=0;
-    end
-    
-    %  Check whether to load last drawn file.
-    if (LastDrawnFileType>0)
-        loadLastDrawnInfo=questdlg(['A saved drawn ROI file (Step',num2str(LastDrawnFileType),...
-            ') is found. Load it or not?'],'Load Last Drawn?','Yes','No','No');
-        loadLastDrawnInfo=strcmpi(loadLastDrawnInfo,'Yes');
-    else
-        loadLastDrawnInfo=false;
-    end
-
-
-    % Load last drawn or preread all files.
-    if loadLastDrawnInfo
-        if (LastDrawnFileType==2)
-            Info=load('Info_LastDrawingStep2.mat');
-        elseif (LastDrawnFileType==1)
-            Info=load('Info_LastDrawingStep1.mat');
-        end
-        Info=Info.Info;
-    else        
-        % Cycle all the folders and files.
-        FolderOrFile = get(S.ls,'string');
-        Info=SearchAllFiles(FolderOrFile);  % Info fields: Path,FileName,SeriesNo,TotalNo,Type.
-        TotalSeriesNum=numel(Info);
-
-        fprintf('    ========================  Prereading all cells  =======================\n');
-        for k=1:TotalSeriesNum
-            fprintf('    Step1, reading %d / %d Series, %d%%, %s\n',k,TotalSeriesNum,round(100*k/TotalSeriesNum),Info(k,1).FileName);
-            FileName=fullfile(Info(k,1).Path,[Info(k,1).FileName,Info(k,1).Type]);
-            [I,I_Info]=ReadStackWithLoci(FileName,Info(k,1).SeriesNo,[1,100]);
-            if SparkParameter.PhaseShiftCorrect>0
-                I=PhaseShiftAutoAlign(I,SparkParameter.PhaseShiftCorrect);
-            end
-            
-            if any(strcmpi(Info(k,1).Type,{'.tif';'.tiff'}))
-                xyt_dim=SparkParameter.xyt_dim;
-            else
-                xyt_dim=I_Info(1:2,2);
-                if xyt_dim(1)<=0; xyt_dim(1)=SparkParameter.xyt_dim(1);end
-                if xyt_dim(2)<=0; xyt_dim(2)=SparkParameter.xyt_dim(2);end
-            end
-            I_Median=mean(I,3);
-            [CurrBW,~]=CellMasking(I_Median,SparkParameter.CellMasking,xyt_dim);
-            
-            Info(k,1).PreMasking=CurrBW;
-            if max(I_Median(:))<=255
-                Info(k,1).PreMaskingRaw=uint8(I_Median);
-            else
-                Info(k,1).PreMaskingRaw=uint16(I_Median);
-            end
-            clear('I_Median','CurrBW','FileName','I','I_Info')
-        end
-        save('Info_LastDrawingStep1.mat','Info');
-    end
-    clear('loadLastDrawnInfo')
-end
-
-function [SparkOutFile,SparkSiteOutFile,SparkOutFileAnswer]=checkOutputFile(S)
-    SparkOutFile=get(S.Save,'string');
-    SparkSiteOutFile=SparkOutFile;
-    if strcmpi(SparkOutFile,'Click to change result saving folder...')            
-        SparkOutFileAnswer=questdlg('Output file is not defined. Use the "File-Folder.SparkInfo.txt" as output?',...
-            'Spark Info Output Location','Yes','No','Yes');
-        SparkOutFileAnswer=strcmpi(SparkOutFileAnswer,'yes');
-        if SparkOutFileAnswer
-            set(S.Save,'string','File-Folder.SparkInfo.txt');
-        else
-            return;
-        end
-    elseif strcmpi(SparkOutFile,'File-Folder.SparkInfo.txt')
-        SparkOutFileAnswer=true;
-    else
-        SparkOutFileAnswer=false;
-        [PathName,FileName,Ext]=fileparts(SparkOutFile);
-        SparkSiteOutFile=fullfile(PathName,[FileName,'_SparkSites',Ext]);
-        clear('PathName','FileName','Ext')
-    end
-    drawnow expose;
-end
-
-function Info=manualCheckMasks(SparkParameter,LastDrawnFileType,Info)
-    if SparkParameter.ROIDrawing
-        if LastDrawnFileType==2
-            ROIcheck=questdlg('The pre-drawn ROI Info might have been checked last time, do you really want to check again?',...
-                'ROI Checking','Yes','No','No');
-            ROIcheck=strcmpi(ROIcheck,'yes');
-        else
-            ROIcheck=true;
-        end
-        
-        if ROIcheck
-            fprintf('    ========================  Preparing cell masks  =======================\n');
-            TotalSeriesNum=numel(Info);
-            for k=1:TotalSeriesNum
-                CellMask=FreehandROI(Info(k,1).PreMaskingRaw,Info(k,1).PreMasking,...
-                    [num2str(k),' / ',num2str(TotalSeriesNum),' | ',Info(k,1).FileName]);
-                CellMask=removePixelROIs(CellMask);
-                Info(k,1).PreMasking=CellMask;
-                fprintf('    Step2, manual checking %d / %d Series, %d%%, %s\n',k,...
-                    TotalSeriesNum,round(100*k/TotalSeriesNum),Info(k,1).FileName);
-                clear('CurrBW','CellMask');
-            end
-            save('Info_LastDrawingStep2.mat','Info');
-            fprintf('    ====================  Preparing cell masks finished ===================\n\n\n\n\n\n');
-        end
-    end
-    clear('LastDrawnFileType','ROIcheck')
-end
-
-function enableAllButtons(S,RunNowButton,status)
-    if strcmpi(status,'on')
-        set(S.Save,'ButtonDownFcn',{@CreateSaveFile,S});
-        set(RunNowButton,'string','Start Processing!');
-        set(S.txCurrFile,'string','');
-        set(S.txETA,'string','');
-    else
-        set(S.Save,'ButtonDownFcn',{});
-        set(RunNowButton,'string','Preparing ...');
-    end
-    set(S.pbAbout,'Enable',status);
-    set(S.pbAddFile,'Enable',status);
-    set(S.pbDelFolder,'Enable',status);
-    set(RunNowButton, 'Enable', status);
-    set(S.ls,'Enable',status);
-    set(S.xyt_dim1,'Enable',status);
-    set(S.xyt_dim2,'Enable',status);
-    set(S.xyt_dim3,'Enable',status);
-    set(S.ImRegister,'Enable',status);
-    set(S.LocalThreshold,'Enable',status);
-    set(S.AmpLim,'Enable',status);
-    set(S.DecayTau,'Enable',status);
-    set(S.DetectionLim1,'Enable',status);
-    set(S.DetectionLim2,'Enable',status);
-    set(S.SparkSiteMinDistance,'Enable',status);
-    set(S.FWHMLim1,'Enable',status);
-    set(S.FWHMLim2,'Enable',status);
-    set(S.sCMOSdynamicOffsetCorrection,'Enable',status);
-    set(S.chROIApplying,'Enable',status);
-    set(S.chImdilationApplying,'Enable',status);
-    set(S.chROIDrawing,'Enable',status);
-    set(S.Tail1,'Enable',status);
-    set(S.Tail2,'Enable',status);
-    set(S.CellMasking,'Enable',status);
-    set(S.chSaveAll,'Enable',status);
-    set(S.ImageDenoise,'Enable',status);
-    set(S.DetectionScaleMin,'Enable',status);
-    set(S.DetectionScaleMax,'Enable',status);
-    set(S.chShutdown,'Enable',status);
-    set(S.Offset,'Enable',status);
-    set(S.Phase,'Enable',status);
-    set(S.pbMode,'Enable',status);
-    set(S.chIcrop,'Enable',status);
-    set(S.chWatershed,'Enable',status);
-    set(S.RecordPhase,'Enable',status);
-    drawnow expose;
 end
